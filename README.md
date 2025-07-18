@@ -33,4 +33,3 @@ streamlit run app.py
 2. Suba este projeto para um repositório no GitHub
 3. Conecte o repositório no Streamlit Cloud e selecione `app.py` como script principal
 4. Compartilhe o link com sua equipe!
-
