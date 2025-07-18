@@ -1,110 +1,112 @@
 
 import streamlit as st
 import plotly.graph_objects as go
-import os
 from fpdf import FPDF
-from datetime import datetime
+import tempfile
+import os
 
-# --- Configuração da página ---
-st.set_page_config(page_title="Roda da Vida", page_icon="📊", layout="centered")
+# ----- Configuração da Página -----
+st.set_page_config(page_title="Roda da Vida - Avaliação Comportamental", layout="centered")
 
-# --- Funções auxiliares ---
-def gerar_grafico_roda(valores, nome_arquivo):
-    categorias = list(valores.keys())
-    notas = list(valores.values())
-    notas.append(notas[0])
-    categorias.append(categorias[0])
+# ----- Estilo customizado -----
+st.markdown(
+    '''
+    <style>
+        .main {background-color: #f9f9f9;}
+        h1, h2, h3 {
+            color: #202020;
+        }
+        .stButton>button {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .stTextInput>div>input {
+            border: 1px solid #ccc;
+        }
+    </style>
+    ''',
+    unsafe_allow_html=True
+)
+
+# ----- Título e descrição -----
+st.title("🧭 Roda da Vida - Avaliação Comportamental")
+st.markdown("Preencha a autoavaliação abaixo de forma espontânea. Ao final, você visualizará sua Roda da Vida.")
+
+# ----- Coleta de informações iniciais -----
+with st.form("identificacao_form"):
+    nome = st.text_input("Seu nome")
+    email = st.text_input("Seu e-mail (opcional)")
+    submitted = st.form_submit_button("Iniciar avaliação")
+
+# ----- Aspectos e perguntas -----
+aspectos = {
+    "Espiritualidade": ["Sinto-me conectado a um propósito maior.", "Minha fé ou espiritualidade me orienta nas decisões."],
+    "Saúde": ["Cuido bem da minha saúde física e mental.", "Tenho hábitos saudáveis e faço acompanhamento médico."],
+    "Desenvolvimento Intelectual": ["Busco aprender continuamente.", "Dedico tempo à leitura ou aprendizado intencional."],
+    "Relacionamentos": ["Tenho relações saudáveis e significativas.", "Consigo me comunicar de forma aberta e respeitosa."],
+    "Contribuição Social": ["Envolvo-me com causas que impactam a sociedade.", "Sinto que contribuo para o bem comum."],
+    "Realização Profissional": ["Sinto-me realizado com minha atuação profissional.", "Tenho clareza e propósito no que faço."],
+    "Equilíbrio e Lazer": ["Tenho tempo para mim e para lazer.", "Consigo equilibrar trabalho e vida pessoal."],
+    "Organização Financeira": ["Tenho controle das minhas finanças.", "Planejo meu futuro financeiro com segurança."]
+}
+
+notas_finais = {}
+exibir_resultado = False
+
+if submitted and nome:
+    with st.form("avaliacao_form"):
+        st.subheader("Autoavaliação")
+        for aspecto, perguntas in aspectos.items():
+            soma = 0
+            peso_total = 0
+            for i, pergunta in enumerate(perguntas):
+                nota = st.slider(pergunta, 0, 10, 5, key=f"{aspecto}_{i}")
+                peso = 1  # Por padrão, peso igual para todas
+                soma += nota * peso
+                peso_total += peso
+            media = round(soma / peso_total, 1) if peso_total > 0 else 0
+            notas_finais[aspecto] = media
+        finalizar = st.form_submit_button("Finalizar e gerar gráfico")
+        if finalizar:
+            exibir_resultado = True
+
+# ----- Exibição dos resultados -----
+if exibir_resultado:
+    st.success(f"Avaliação concluída com sucesso, {nome}!")
+    st.subheader("Sua Roda da Vida:")
+
+    # Oculta perguntas, exibe só gráfico
+    categorias = list(notas_finais.keys())
+    valores = list(notas_finais.values())
+    valores += valores[:1]  # para fechar o gráfico
+    categorias += categorias[:1]
 
     fig = go.Figure(
-        data=go.Scatterpolar(
-            r=notas,
-            theta=categorias,
-            fill='toself',
-            line=dict(color='rgba(0,100,200,0.7)')
+        data=[
+            go.Scatterpolar(r=valores, theta=categorias, fill='toself', name="Autoavaliação")
+        ],
+        layout=go.Layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 10])),
+            showlegend=False
         )
     )
+    st.plotly_chart(fig)
 
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, 10], showticklabels=False, ticks='')
-        ),
-        showlegend=False,
-        margin=dict(l=30, r=30, t=30, b=30)
-    )
-
-    fig.write_image(nome_arquivo, format="png")
-    return nome_arquivo
-
-def gerar_pdf(nome, grafico_path, valores):
+    # ----- Geração do PDF -----
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=14)
-    pdf.set_text_color(40, 40, 40)
-    pdf.cell(200, 10, txt=f"Roda da Vida - {nome}", ln=True, align="C")
-    pdf.ln(10)
-
-    # Adiciona o gráfico
-    if os.path.exists(grafico_path):
-        pdf.image(grafico_path, x=35, y=30, w=140)
-        pdf.ln(100)
-    else:
-        pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 10, "O gráfico não pôde ser gerado neste ambiente.")
-
-    pdf.ln(10)
+    pdf.cell(0, 10, f"Roda da Vida - {nome}", ln=True)
     pdf.set_font("Arial", size=12)
-    for k, v in valores.items():
-        pdf.cell(0, 10, f"{k}: {v}", ln=True)
+    for aspecto, nota in notas_finais.items():
+        pdf.cell(0, 10, f"{aspecto}: {nota}/10", ln=True)
+    try:
+        # Aviso sobre ambiente restrito para imagem
+        tmpdir = tempfile.gettempdir()
+        pdf_path = os.path.join(tmpdir, f"roda_da_vida_{nome.replace(' ', '_')}.pdf")
+        pdf.output(pdf_path)
+        with open(pdf_path, "rb") as f:
+            st.download_button("📄 Baixar PDF com resultados", f, file_name=f"roda_da_vida_{nome}.pdf")
+    except Exception as e:
+        st.warning("⚠️ O PDF foi gerado sem o gráfico devido a restrições de ambiente.")
 
-    output_path = f"Roda_da_Vida_{nome.replace(' ', '_')}.pdf"
-    pdf.output(output_path)
-    return output_path
-
-# --- Interface principal ---
-st.title("📊 Roda da Vida - Avaliação Comportamental")
-
-with st.form("formulario"):
-    nome = st.text_input("Seu nome completo")
-    email = st.text_input("Seu e-mail")
-    st.markdown("### Avalie de 0 a 10 (sem identificar o tema da pergunta)")
-
-    perguntas = {
-        "Sinto que tenho equilíbrio entre minha vida pessoal e profissional.": "Equilíbrio",
-        "Tenho objetivos claros e trabalho ativamente para alcançá-los.": "Propósito",
-        "Tenho energia e disposição na maior parte do tempo.": "Saúde",
-        "Consigo manter bons relacionamentos com pessoas próximas.": "Relacionamentos",
-        "Administro bem meu tempo e prioridades.": "Gestão de Tempo",
-        "Tenho controle sobre minhas finanças e faço planejamentos.": "Finanças",
-        "Dedico tempo ao meu desenvolvimento pessoal e aprendizado.": "Desenvolvimento",
-        "Consigo lidar bem com emoções e frustrações.": "Emocional"
-    }
-
-    respostas = {}
-    for pergunta in perguntas:
-        respostas[perguntas[pergunta]] = st.slider(pergunta, 0, 10, 5)
-
-    enviado = st.form_submit_button("Gerar Análise")
-
-if enviado:
-    with st.spinner("Gerando sua Roda da Vida..."):
-        img_path = f"grafico_{nome.replace(' ', '_')}.png"
-        gerar_grafico_roda(respostas, img_path)
-        pdf_path = gerar_pdf(nome, img_path, respostas)
-
-    st.success("✅ Análise concluída!")
-    st.image(img_path, caption="Sua Roda da Vida", use_column_width=True)
-
-    with open(pdf_path, "rb") as f:
-        st.download_button(
-            label="📄 Baixar PDF com Análise",
-            data=f,
-            file_name=f"Roda_da_Vida_{nome.replace(' ', '_')}.pdf",
-            mime="application/pdf"
-        )
-
-    # Oculta perguntas após envio
-    st.markdown("---")
-    st.markdown(f"**Nome:** {nome}")
-    st.markdown(f"**E-mail:** {email}")
-    os.remove(img_path)
-    os.remove(pdf_path)
