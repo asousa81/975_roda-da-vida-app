@@ -124,6 +124,11 @@ Pensando nisso, os Hindus chegaram à conclusão de que era necessário ter um s
 - Amor
 - Trabalho e Carreira
 - Saúde
+
+Um abraço!
+Arthur de Sousa
+
+Este conteúdo é uma adaptação do artigo sobre a roda da vida produzido pelo IBC, Instituto Brasileiro de Coaching
 """)
 
         # Geração automática, sem reset do app\ngerar_pdf = True
