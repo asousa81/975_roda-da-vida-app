@@ -2,13 +2,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.io as pio
 from fpdf import FPDF
 import tempfile
 import os
 
 st.set_page_config(page_title="Roda da Vida", layout="centered")
-st.title("🧭 Roda da Vida - Avaliação Comportamental")
+st.title("🎨 Roda da Vida - Avaliação Comportamental")
 
 if "iniciar_avaliacao" not in st.session_state:
     st.session_state.iniciar_avaliacao = False
@@ -48,7 +47,6 @@ else:
         respostas.append(st.slider(pergunta, 0, 10, 5, key=f"q{idx}"))
 
     if st.button("Gerar Gráfico da Roda da Vida"):
-        # Aspectos e mapeamento das respostas (2 por aspecto)
         aspectos = {
             "Amigos e Familiares": respostas[0:2],
             "Lazer": respostas[2:4],
@@ -81,23 +79,22 @@ else:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # Exportar gráfico para imagem temporária
+        # Criar PDF com resultados
         with tempfile.TemporaryDirectory() as tmpdir:
-            img_path = os.path.join(tmpdir, "roda_da_vida.png")
-            pio.write_image(fig, img_path, format="png")
-
-            # Criar PDF
             pdf_path = os.path.join(tmpdir, "roda_da_vida.pdf")
             pdf = FPDF()
             pdf.add_page()
-            pdf.set_font("Arial", size=12)
+            pdf.set_font("Arial", "B", 14)
             pdf.cell(200, 10, txt=f"Roda da Vida - {st.session_state.nome}", ln=True)
-            pdf.image(img_path, x=10, y=30, w=180)
+            pdf.ln(10)
+            pdf.set_font("Arial", "", 12)
+            for aspecto, nota in resultados.items():
+                pdf.cell(0, 10, txt=f"{aspecto}: {nota}", ln=True)
             pdf.output(pdf_path)
 
             with open(pdf_path, "rb") as f:
                 st.download_button(
-                    label="Baixar PDF da Avaliação",
+                    label="Baixar PDF com Resultados",
                     data=f.read(),
                     file_name=f"roda_da_vida_{st.session_state.nome.replace(' ', '_')}.pdf",
                     mime="application/pdf"
