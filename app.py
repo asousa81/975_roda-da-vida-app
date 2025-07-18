@@ -63,7 +63,7 @@ if st.session_state.exibir_resultado:
     respostas = st.session_state.respostas
 
     st.success(f"Avaliação concluída com sucesso!")
-    st.subheader("Roda da Vida - "{nome})
+    st.subheader(f"Roda da Vida - {nome}")
 
     categorias = list(respostas.keys())
     valores = list(respostas.values())
