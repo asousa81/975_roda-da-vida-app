@@ -97,10 +97,11 @@ if nome:
             showlegend=False,
             margin=dict(l=30, r=30, t=30, b=30)
         )
-        st.subheader(f"📊 Gráfico da Roda da Vida - {nome}")
+        st.subheader(f"📊 Resultado da Roda da Vida - {nome}")
         st.plotly_chart(fig, use_container_width=True)
 
         with st.expander("🧩 Sobre a Roda da Vida"):
+            st.markdown("[Acesse a fonte do conteúdo aqui](https://www.ibccoaching.com.br/portal/coaching/conheca-ferramenta-roda-vida-coaching/)")
             st.markdown("""
 **A história da Roda da Vida**
 
@@ -119,8 +120,8 @@ Pensando nisso, os Hindus chegaram à conclusão de que era necessário ter um s
 - Saúde
 """)
 
-        gerar_pdf = st.checkbox("📄 Gerar PDF com resultado")
-        if gerar_pdf:
+        # Geração automática, sem reset do app\ngerar_pdf = True
+        if True:
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", "B", 16)
@@ -134,5 +135,5 @@ Pensando nisso, os Hindus chegaram à conclusão de que era necessário ter um s
             pdf_output_path = f"roda_da_vida_{nome.replace(' ', '_')}.pdf"
             pdf.output(pdf_output_path)
             with open(pdf_output_path, "rb") as f:
-                download = st.download_button("📥 Baixar PDF", f, file_name=pdf_output_path, mime='application/pdf')
+                st.download_button("📥 Baixar PDF", f, file_name=pdf_output_path)
             os.remove(pdf_output_path)
