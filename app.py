@@ -38,7 +38,13 @@ st.markdown(
 st.markdown("<div class='title'>🧭 Roda da Vida</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Avaliação comportamental para reflexão pessoal</div><br>", unsafe_allow_html=True)
 
-nome = st.text_input("Digite seu nome completo para iniciar:")
+
+with st.form(key="form_nome"):
+    nome = st.text_input("Digite seu nome completo para iniciar:")
+    iniciar = st.form_submit_button("Iniciar Avaliação ✅")
+if not nome:
+    st.stop()
+
 
 perguntas = [
     "Costuma refletir sobre o que realmente importa na vida?",
