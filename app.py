@@ -5,9 +5,10 @@ import plotly.graph_objects as go
 from fpdf import FPDF
 import tempfile
 import os
+import base64
 
-st.set_page_config(page_title="Roda da Vida", layout="centered")
-st.title("🧭 Roda da Vida - Avaliação Comportamental")
+st.set_page_config(page_title="📊 Roda da Vida - Avaliação Comportamental", layout="centered")
+st.title("📊 Roda da Vida - Avaliação Comportamental")
 
 if "iniciar_avaliacao" not in st.session_state:
     st.session_state.iniciar_avaliacao = False
@@ -79,23 +80,51 @@ else:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # Criar PDF com resultados
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pdf_path = os.path.join(tmpdir, "roda_da_vida.pdf")
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", "B", 14)
-            pdf.cell(200, 10, txt=f"Roda da Vida - {st.session_state.nome}", ln=True)
-            pdf.ln(10)
-            pdf.set_font("Arial", "", 12)
-            for aspecto, nota in resultados.items():
-                pdf.cell(0, 10, txt=f"{aspecto}: {nota}", ln=True)
-            pdf.output(pdf_path)
+        # Tentar gerar imagem e incluir no PDF
+        try:
+            img_bytes = fig.to_image(format="png")
+            with tempfile.TemporaryDirectory() as tmpdir:
+                img_path = os.path.join(tmpdir, "grafico.png")
+                with open(img_path, "wb") as img_file:
+                    img_file.write(img_bytes)
 
-            with open(pdf_path, "rb") as f:
-                st.download_button(
-                    label="Baixar PDF com Resultados",
-                    data=f.read(),
-                    file_name=f"roda_da_vida_{st.session_state.nome.replace(' ', '_')}.pdf",
-                    mime="application/pdf"
-                )
+                pdf_path = os.path.join(tmpdir, "roda_da_vida.pdf")
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(200, 10, txt=f"Roda da Vida - {st.session_state.nome}", ln=True)
+                pdf.ln(5)
+                pdf.set_font("Arial", "", 12)
+                for aspecto, nota in resultados.items():
+                    pdf.cell(0, 10, txt=f"{aspecto}: {nota}", ln=True)
+                pdf.image(img_path, x=10, y=80, w=180)
+                pdf.output(pdf_path)
+
+                with open(pdf_path, "rb") as f:
+                    st.download_button(
+                        label="Baixar PDF com Gráfico",
+                        data=f.read(),
+                        file_name=f"roda_da_vida_{st.session_state.nome.replace(' ', '_')}.pdf",
+                        mime="application/pdf"
+                    )
+        except Exception as e:
+            st.error("Ocorreu um erro ao gerar a imagem do gráfico. PDF será gerado apenas com os dados.")
+            with tempfile.TemporaryDirectory() as tmpdir:
+                pdf_path = os.path.join(tmpdir, "roda_da_vida_texto.pdf")
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(200, 10, txt=f"Roda da Vida - {st.session_state.nome}", ln=True)
+                pdf.ln(5)
+                pdf.set_font("Arial", "", 12)
+                for aspecto, nota in resultados.items():
+                    pdf.cell(0, 10, txt=f"{aspecto}: {nota}", ln=True)
+                pdf.output(pdf_path)
+
+                with open(pdf_path, "rb") as f:
+                    st.download_button(
+                        label="Baixar PDF com Resultados (sem gráfico)",
+                        data=f.read(),
+                        file_name=f"roda_da_vida_{st.session_state.nome.replace(' ', '_')}_sem_grafico.pdf",
+                        mime="application/pdf"
+                    )
