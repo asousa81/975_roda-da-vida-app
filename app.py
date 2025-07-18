@@ -134,5 +134,5 @@ Pensando nisso, os Hindus chegaram à conclusão de que era necessário ter um s
             pdf_output_path = f"roda_da_vida_{nome.replace(' ', '_')}.pdf"
             pdf.output(pdf_output_path)
             with open(pdf_output_path, "rb") as f:
-                st.download_button("📥 Baixar PDF", f, file_name=pdf_output_path)
+                download = st.download_button("📥 Baixar PDF", f, file_name=pdf_output_path, mime='application/pdf')
             os.remove(pdf_output_path)
