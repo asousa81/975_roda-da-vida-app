@@ -1,109 +1,96 @@
-
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
+import plotly.graph_objects as go
 from fpdf import FPDF
 import tempfile
 import os
 
 st.set_page_config(page_title="Roda da Vida - Avaliação Comportamental", layout="centered")
 
-def gerar_grafico(resultados, nome):
-    categorias = list(resultados.keys())
-    valores = list(resultados.values())
-    N = len(categorias)
-    valores += valores[:1]
-    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
-    angles += angles[:1]
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-    ax.plot(angles, valores, linewidth=2, linestyle='solid')
-    ax.fill(angles, valores, alpha=0.25)
-    ax.set_yticklabels([])
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(categorias)
-    ax.set_title(f"Roda da Vida - {nome}", size=14, y=1.08)
-    return fig
+# Inicialização de estado
+if "exibir_resultado" not in st.session_state:
+    st.session_state.exibir_resultado = False
+if "respostas" not in st.session_state:
+    st.session_state.respostas = {}
+if "nome" not in st.session_state:
+    st.session_state.nome = ""
+if "email" not in st.session_state:
+    st.session_state.email = ""
 
-def gerar_pdf(nome, resultados, fig):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 10, f"Roda da Vida - Avaliação de {nome}", ln=True)
-    pdf.set_font("Arial", '', 12)
-    for aspecto, valor in resultados.items():
-        pdf.cell(0, 10, f"{aspecto}: {valor}", ln=True)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        fig.savefig(tmpfile.name, format="png")
-        pdf.image(tmpfile.name, x=30, y=pdf.get_y() + 10, w=150)
-        os.unlink(tmpfile.name)
-    pdf_output_path = os.path.join(tempfile.gettempdir(), f"{nome}_roda_vida.pdf")
-    pdf.output(pdf_output_path)
-    return pdf_output_path
+st.title("🧭 Roda da Vida - Avaliação Comportamental")
 
-st.title("Roda da Vida - Avaliação Comportamental")
-nome = st.text_input("Digite seu nome")
+# Etapa 1: Identificação
+if not st.session_state.nome:
+    with st.form("identificacao_form"):
+        nome = st.text_input("Seu nome")
+        email = st.text_input("Seu e-mail (opcional)")
+        submitted = st.form_submit_button("Iniciar avaliação")
+        if submitted and nome:
+            st.session_state.nome = nome
+            st.session_state.email = email
 
+# Etapa 2: Avaliação
 aspectos = {
-    "Amigos e Familiares": [
-        "Você tem se sentido confortável para conversar com familiares ou amigos sobre algo pessoal?",
-        "Com que frequência você tem se sentido emocionalmente próximo de alguém querido?"
-    ],
-    "Lazer": [
-        "Você tem separado tempo livre para fazer algo prazeroso nos últimos dias?",
-        "Na última semana, você teve momentos de relaxamento ou diversão?"
-    ],
-    "Vida Financeira": [
-        "Você tem conseguido pagar suas contas sem grandes dificuldades?",
-        "Nos últimos dias, sua situação financeira gerou algum desconforto?"
-    ],
-    "Intelecto": [
-        "Você sentiu que aprendeu algo novo ou estimulante recentemente?",
-        "Nos últimos tempos, você dedicou tempo a desenvolver algum conhecimento ou habilidade?"
-    ],
-    "Espiritualidade": [
-        "Você tem recorrido a alguma prática ou crença pessoal para lidar com desafios?",
-        "Nos últimos dias, sentiu-se conectado a algo maior ou refletiu sobre seus valores?"
-    ],
-    "Amor": [
-        "Você tem se sentido emocionalmente satisfeito em sua relação afetiva ou consigo mesmo?",
-        "Nos últimos tempos, o carinho e o respeito estiveram presentes em sua vida amorosa?"
-    ],
-    "Trabalho e Carreira": [
-        "Você tem se sentido produtivo e realizado em suas atividades profissionais ou acadêmicas?",
-        "Nos últimos dias, o trabalho ou rotina contribuíram positivamente para seu bem-estar?"
-    ],
-    "Saúde": [
-        "Você tem cuidado de sua saúde, com alimentação equilibrada ou atividade física?",
-        "Nos últimos dias, sua saúde impactou negativamente sua disposição ou humor?"
-    ]
+    "Espiritualidade": ["Sinto-me conectado a um propósito maior.", "Minha fé ou espiritualidade me orienta nas decisões."],
+    "Saúde": ["Cuido bem da minha saúde física e mental.", "Tenho hábitos saudáveis e faço acompanhamento médico."],
+    "Desenvolvimento Intelectual": ["Busco aprender continuamente.", "Dedico tempo à leitura ou aprendizado intencional."],
+    "Relacionamentos": ["Tenho relações saudáveis e significativas.", "Consigo me comunicar de forma aberta e respeitosa."],
+    "Contribuição Social": ["Envolvo-me com causas que impactam a sociedade.", "Sinto que contribuo para o bem comum."],
+    "Realização Profissional": ["Sinto-me realizado com minha atuação profissional.", "Tenho clareza e propósito no que faço."],
+    "Equilíbrio e Lazer": ["Tenho tempo para mim e para lazer.", "Consigo equilibrar trabalho e vida pessoal."],
+    "Organização Financeira": ["Tenho controle das minhas finanças.", "Planejo meu futuro financeiro com segurança."]
 }
 
-respostas = {}
-if nome:
-    with st.form("formulario"):
+if st.session_state.nome and not st.session_state.exibir_resultado:
+    with st.form("avaliacao_form"):
+        respostas = {}
+        st.subheader("Autoavaliação")
         for aspecto, perguntas in aspectos.items():
-            st.markdown(f"### {aspecto}")
-            total = 0
+            soma = 0
             for i, pergunta in enumerate(perguntas):
-                resposta = st.slider(pergunta, 0, 10, 5, key=f"{aspecto}_{i}")
-                total += resposta
-            media = round(total / 2, 1)
+                nota = st.slider(pergunta, 0, 10, 5, key=f"{aspecto}_{i}")
+                soma += nota
+            media = round(soma / len(perguntas), 1)
             respostas[aspecto] = media
-        enviado = st.form_submit_button("Finalizar")
+        finalizar = st.form_submit_button("Finalizar e gerar gráfico")
+        if finalizar:
+            st.session_state.respostas = respostas
+            st.session_state.exibir_resultado = True
 
-    if enviado:
-        st.success("Avaliação concluída com sucesso!")
-        fig = gerar_grafico(respostas, nome)
-        st.pyplot(fig)
-        pdf_path = gerar_pdf(nome, respostas, fig)
-        with open(pdf_path, "rb") as file:
-            st.download_button("📥 Baixar PDF com resultado", data=file, file_name=f"{nome}_roda_da_vida.pdf")
+# Etapa 3: Resultado
+if st.session_state.exibir_resultado:
+    nome = st.session_state.nome
+    respostas = st.session_state.respostas
 
-        st.markdown("---")
-        st.markdown("""
-### A história da Roda da Vida
+    st.success(f"Avaliação concluída com sucesso, {nome}!")
+    st.subheader("Sua Roda da Vida:")
 
-A felicidade plena depende de diversos fatores de nossa vida, como a maneira que nos vemos, como são nossos relacionamentos, como lidamos com nossas carreiras, como nos portamos diante do mundo.
+    categorias = list(respostas.keys())
+    valores = list(respostas.values())
+    categorias += categorias[:1]
+    valores += valores[:1]
 
-Pensando nisso, os Hindus chegaram à conclusão de que era necessário ter um sistema no qual a pessoa pudesse avaliar cada parte importante de sua vida para entender quais pontos estão satisfatórios e quais precisam de atenção. Assim foi criada a Roda da Vida, uma técnica de avaliação pessoal separada em setores essenciais para encontrarmos um equilíbrio pessoal.
-""")
+    fig = go.Figure(
+        data=[
+            go.Scatterpolar(r=valores, theta=categorias, fill='toself', name="Autoavaliação")
+        ],
+        layout=go.Layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 10])),
+            showlegend=False
+        )
+    )
+    st.plotly_chart(fig)
+
+    # Gerar PDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=14)
+    pdf.cell(0, 10, f"Roda da Vida - {nome}", ln=True)
+    pdf.set_font("Arial", size=12)
+    for aspecto, nota in respostas.items():
+        pdf.cell(0, 10, f"{aspecto}: {nota}/10", ln=True)
+
+    tmpdir = tempfile.gettempdir()
+    pdf_path = os.path.join(tmpdir, f"roda_da_vida_{nome.replace(' ', '_')}.pdf")
+    pdf.output(pdf_path)
+    with open(pdf_path, "rb") as f:
+        st.download_button("📄 Baixar PDF com resultados", f, file_name=f"roda_da_vida_{nome}.pdf")
