@@ -126,7 +126,8 @@ Pensando nisso, os Hindus chegaram à conclusão de que era necessário ter um s
 - Saúde
 
 Um abraço!
-Arthur de Sousa
+
+ Arthur de Sousa
 
 Este conteúdo é uma adaptação do artigo sobre a roda da vida produzido pelo IBC, Instituto Brasileiro de Coaching
 """)
