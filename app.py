@@ -7,7 +7,7 @@ import tempfile
 import os
 
 st.set_page_config(page_title="Roda da Vida", layout="centered")
-st.title("🎨 Roda da Vida - Avaliação Comportamental")
+st.title("🧭 Roda da Vida - Avaliação Comportamental")
 
 if "iniciar_avaliacao" not in st.session_state:
     st.session_state.iniciar_avaliacao = False
