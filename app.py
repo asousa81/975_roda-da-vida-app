@@ -125,4 +125,5 @@ A Roda da Vida é um círculo dividido em oito, dez ou doze partes como um gráf
 - **Saúde**
 """)
 
-import ace_tools as tools; tools.create_file("app.py", app_code)
+import ace_tools as tools
+tools.create_file("app.py", app_code)
